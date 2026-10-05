@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 
 export async function GET() {
+  // Balanced, absolute JSON dataset URL mapping out recent trend quarters
   const absUrl = "https://abs.gov.au";
 
   try {
@@ -13,33 +14,27 @@ export async function GET() {
     
     const rawData = await response.json();
     
-    // 1. Safely locate the observations dictionary in the new flattened format
-    const observations = rawData.data?.dataSets?.[0]?.observations || {};
+    // 1. Isolate the human-readable date headers
+    const timePeriods = rawData.data.structure.dimensions.observation.values.map(v => v.name);
     
-    // 2. Safely find the corresponding time period labels
-    const timeDimensions = rawData.data?.structure?.dimensions?.observation || [];
-    const timePeriodDim = timeDimensions.find(d => d.id === 'TIME_PERIOD');
-    const timeLabels = timePeriodDim ? timePeriodDim.values.map(v => v.name) : ["Q1 2026"];
-
-    // 3. Process the dictionary entries into a clean array for the graph
-    const cleanData = Object.keys(observations).map((key) => {
-      const dataValues = observations[key];
-      // The absolute population number is the first item inside the value array
-      const rawPopulation = dataValues ? dataValues[0] : 0; 
+    // 2. Isolate the total Australia observation tracking blocks
+    const totalAusObservations = rawData.data.dataSets[0].series["0:0:0:3:0"].observations;
+    
+    // 3. Loop through and map them into a simple, reliable trend lineup
+    const cleanData = Object.keys(totalAusObservations).map((key) => {
+      const index = parseInt(key, 10);
+      const dataValueArray = totalAusObservations[key];
+      const rawPopulation = dataValueArray[0]; 
       
-      // Split the positional key to find the time index (e.g. "0:0:0:0:0:0")
-      const keyParts = key.split(':');
-      const timeIndex = parseInt(keyParts[0], 10) || 0;
-
       return {
-        quarter: timeLabels[timeIndex] || "Q1 2026",
+        quarter: timePeriods[index],
         populationInMillions: parseFloat((rawPopulation / 1000000).toFixed(2)), 
         rawPopulation: rawPopulation
       };
     });
 
-    // Ensure we filter out any empty entries and send clean JSON to the frontend
-    return NextResponse.json(cleanData.filter(d => d.rawPopulation > 0));
+    // Sort chronologically from past to present for the line graph
+    return NextResponse.json(cleanData.reverse());
 
   } catch (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
