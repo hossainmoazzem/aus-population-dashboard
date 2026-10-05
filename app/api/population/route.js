@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 
 export async function GET() {
-  const absUrl = "https://abs.gov.au";
+  const absUrl = "https://data.api.abs.gov.au/rest/data/ABS,ERP_Q,1.0.0/1+2+3.3.TOT..Q?startPeriod=2026-Q1&dimensionAtObservation=AllDimensions";
 
   try {
     const response = await fetch(absUrl, {
